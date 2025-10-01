@@ -1,0 +1,759 @@
+<template>
+  <div class="test-script-form-container">
+    <header class="form-header">
+      <h1 class="form-title">Gerador de Roteiro de Teste</h1>
+      <div class="form-actions">
+        <button class="btn btn-secondary" @click="handleLogout">
+          <i class="fas fa-sign-out-alt"></i> Sair
+        </button>
+        <button class="btn btn-primary" @click="generateDocx">
+          <i class="fas fa-download"></i> Gerar DOCX
+        </button>
+      </div>
+    </header>
+
+    <nav class="sidebar">
+      <ul class="sidebar-menu">
+        <li v-for="section in sections" :key="section.id">
+          <a
+            :class="[
+              'sidebar-link',
+              { 'sidebar-link-active': activeSection === section.id }
+            ]"
+            @click="setActiveSection(section.id)"
+          >
+            {{ section.title }}
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <main class="form-main-content">
+      <section class="form-section">
+        <h2 class="section-title">{{ currentSectionTitle }}</h2>
+        <div class="section-content">
+          <div v-if="activeSection === 'identificacao'">
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="siglaProjeto">Sigla do Projeto *</label>
+                <input
+                  id="siglaProjeto"
+                  v-model="formData.siglaProjeto"
+                  placeholder="Ex: SIST"
+                />
+              </div>
+              <div class="form-group">
+                <label for="nomeProjeto">Nome do Projeto *</label>
+                <input
+                  id="nomeProjeto"
+                  v-model="formData.nomeProjeto"
+                  placeholder="Ex: Sistema de Gestão"
+                />
+              </div>
+            </div>
+            
+            <div class="form-grid three-cols">
+              <div class="form-group">
+                <label for="versao">Versão</label>
+                <input
+                  id="versao"
+                  v-model="formData.versao"
+                />
+              </div>
+              <div class="form-group">
+                <label for="requisitante">Nome do Requisitante *</label>
+                <input
+                  id="requisitante"
+                  v-model="formData.nomeRequisitante"
+                  placeholder="Nome completo"
+                />
+              </div>
+              <div class="form-group">
+                <label for="gerente">Gerente de Projetos *</label>
+                <input
+                  id="gerente"
+                  v-model="formData.gerenteProjetos"
+                  placeholder="Nome completo"
+                />
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-file-alt"></i> Histórico de Revisões</h3>
+              </div>
+              <div class="card-content">
+                <div class="space-y-4">
+                  <div v-for="(revisao, index) in formData.historicoRevisoes" :key="index" class="grid-cols-4-gap-4 border-rounded-lg p-4">
+                    <input
+                      placeholder="Versão"
+                      v-model="revisao.versao"
+                    />
+                    <input
+                      type="date"
+                      placeholder="Data"
+                      v-model="revisao.data"
+                    />
+                    <input
+                      placeholder="Descrição"
+                      v-model="revisao.descricao"
+                    />
+                    <div class="flex-gap-2">
+                      <input
+                        placeholder="Autor"
+                        v-model="revisao.autor"
+                      />
+                      <button
+                        v-if="formData.historicoRevisoes.length > 1"
+                        class="btn btn-outline icon-btn"
+                        @click="removeArrayItem('historicoRevisoes', index)"
+                      >
+                        <i class="fas fa-trash-alt"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <button
+                    class="btn btn-outline full-width-btn"
+                    @click="addArrayItem('historicoRevisoes', { versao: '', data: '', descricao: '', autor: '' })"
+                  >
+                    <i class="fas fa-plus"></i> Adicionar Revisão
+                  </button>
+                </div>
+          </div>
+
+          <div v-if="activeSection === 'escopo'">
+            <div class="form-group">
+              <label for="itensTesteTxt">Itens de Teste</label>
+              <textarea
+                id="itensTesteTxt"
+                v-model="formData.itensTesteTxt"
+                placeholder="Descreva os itens de teste que fazem parte do Roteiro de Testes..."
+                rows="4"
+              ></textarea>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Tipos de Teste</h3>
+              </div>
+              <div class="card-content">
+                <div class="form-grid">
+                  <div v-for="tipo in [
+                    { key: 'funcao', label: 'Teste de função' },
+                    { key: 'seguranca', label: 'Teste de segurança' },
+                    { key: 'volume', label: 'Teste de volume' },
+                    { key: 'usabilidade', label: 'Teste de usabilidade' },
+                    { key: 'desempenho', label: 'Teste de avaliação de desempenho' },
+                    { key: 'outros', label: 'Outros' }
+                  ]" :key="tipo.key" class="checkbox-group">
+                    <input
+                      type="checkbox"
+                      :id="tipo.key"
+                      v-model="formData.tiposTeste[tipo.key]"
+                    />
+                    <label :for="tipo.key">{{ tipo.label }}</label>
+                  </div>
+                </div>
+                <div v-if="formData.tiposTeste.outros" class="mt-4">
+                  <input
+                    placeholder="Especifique outros tipos de teste..."
+                    v-model="formData.tiposTeste.outrosTexto"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Níveis de Teste</h3>
+              </div>
+              <div class="card-content">
+                <div class="form-grid">
+                  <div v-for="nivel in [
+                    { key: 'unitarios', label: 'Testes unitários funcionais' },
+                    { key: 'integracao', label: 'Testes de integração' },
+                    { key: 'sistema', label: 'Testes de sistema' },
+                    { key: 'configuracao', label: 'Testes de configuração de portal' }
+                  ]" :key="nivel.key" class="checkbox-group">
+                    <input
+                      type="checkbox"
+                      :id="nivel.key"
+                      v-model="formData.niveisTesteTxt[nivel.key]"
+                    />
+                    <label :for="nivel.key">{{ nivel.label }}</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="activeSection === 'cenarios'">
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Identificação de Cenários Operacionais</h3>
+              </div>
+              <div class="card-content">
+                <div class="space-y-4">
+                  <div v-for="(cenario, index) in formData.cenarios" :key="index" class="grid-cols-2-gap-4 border-rounded-lg p-4">
+                    <input
+                      placeholder="Nome do Cenário"
+                      v-model="cenario.nome"
+                    />
+                    <div class="flex-gap-2">
+                      <textarea
+                        placeholder="Descrição do cenário..."
+                        v-model="cenario.descricao"
+                        rows="2"
+                      ></textarea>
+                      <button
+                        v-if="formData.cenarios.length > 1"
+                        class="btn btn-outline icon-btn"
+                        @click="removeArrayItem('cenarios', index)"
+                      >
+                        <i class="fas fa-trash-alt"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <button
+                    class="btn btn-outline full-width-btn"
+                    @click=addArrayItem('cenarios', { nome: '', descricao: '' })               >
+                    <i class="fas fa-plus"></i> Adicionar Cenário
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="activeSection === 'casos-teste'">
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Casos de Teste Detalhados</h3>
+              </div>
+              <div class="card-content">
+                <div class="text-center py-8 text-muted-foreground">
+                  <i class="fas fa-file-alt text-5xl opacity-50 mb-4"></i>
+                  <p>Esta seção permitirá adicionar casos de teste detalhados</p>
+                  <p class="text-sm">com identificador, descrição, pré-condições, procedimentos e resultados esperados.</p>
+                  <button class="btn btn-outline mt-4">
+                    <i class="fas fa-plus"></i> Adicionar Caso de Teste
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="activeSection === 'anexos'">
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Anexos</h3>
+              </div>
+              <div class="card-content">
+                <div class="space-y-4">
+                  <div v-for="(anexo, index) in formData.anexos" :key="index" class="flex-gap-2">
+                    <input
+                      placeholder="Nome do documento ou arquivo..."
+                      v-model="anexo.value"
+                    />
+                    <button
+                      v-if="formData.anexos.length > 1"
+                      class="btn btn-outline icon-btn" @click="removeArrayItem('anexos', index)"
+                    >
+                      <i class="fas fa-trash-alt"></i>
+                    </button>
+                  </div>
+                  <button
+                    class="btn btn-outline full-width-btn" @click="addArrayItem('anexos', { value: '' })"
+                  >
+                    <i class="fas fa-plus"></i> Adicionar Anexo
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Referências</h3>
+              </div>
+              <div class="card-content">
+                <div class="space-y-4">
+                  <div v-for="(referencia, index) in formData.referencias" :key="index" class="flex-gap-2">
+                    <input
+                      placeholder="Referência a documentos, sites, manuais..."
+                      v-model="referencia.value"
+                    />
+                    <button
+                      v-if="formData.referencias.length > 1"
+                      class="btn btn-outline icon-btn" @click="removeArrayItem('referencias', index)"
+                    >
+                      <i class="fas fa-trash-alt"></i>
+                    </button>
+                  </div>
+                  <button
+                    class="btn btn-outline full-width-btn" @click="addArrayItem('referencias', { value: '' })"
+                  >
+                    <i class="fas fa-plus"></i> Adicionar Referência
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="activeSection === 'aprovacoes'">
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Aprovações</h3>
+              </div>
+              <div class="card-content">
+                <div class="space-y-4">
+                  <div v-for="(aprovacao, index) in formData.aprovacoes" :key="index" class="grid-cols-2-gap-4 border-rounded-lg p-4">
+                    <input
+                      placeholder="Nome do Participante"
+                      v-model="aprovacao.participante"
+                    />
+                    <div class="flex-gap-2">
+                      <input
+                        type="date"
+                        placeholder="Data"
+                        v-model="aprovacao.data"
+                      />
+                      <button
+                        v-if="formData.aprovacoes.length > 1"
+                        class="btn btn-outline icon-btn" @click="removeArrayItem(\'aprovacoes\', index)"
+                      >
+                        <i class="fas fa-trash-alt"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <button
+                    class="btn btn-outline full-width-btn" @click="addArrayItem('aprovacoes', { participante: '', data: '' })"
+                  >
+                    <i class="fas fa-plus"></i> Adicionar Aprovação
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</template>
+
+<script>
+import { ref, computed } from 'vue'
+
+export default {
+  name: 'TestScriptForm',
+  setup() {
+    const isLoggedIn = ref(true) // Assumindo que o usuário já está logado para acessar este formulário
+    const userInfo = ref({ usuario: 'admin', perfil: 'gerente' }) // Dados de usuário mock para teste
+    const activeSection = ref('identificacao')
+    const formData = ref({
+      siglaProjeto: '',
+      nomeProjeto: '',
+      versao: '1.0',
+      nomeRequisitante: '',
+      gerenteProjetos: '',
+      itensTesteTxt: '',
+      tiposTeste: {
+        funcao: false,
+        seguranca: false,
+        volume: false,
+        usabilidade: false,
+        desempenho: false,
+        outros: false,
+        outrosTexto: ''
+      },
+      niveisTesteTxt: {
+        unitarios: false,
+        integracao: false,
+        sistema: false,
+        configuracao: false
+      },
+      historicoRevisoes: [{ versao: '1.0', data: '', descricao: '', autor: '' }],
+      cenarios: [{ nome: '', descricao: '' }],
+      casosTeste: [],
+      anexos: [{ value: '' }], // Alterado para objeto para v-model funcionar corretamente
+      referencias: [{ value: '' }], // Alterado para objeto para v-model funcionar corretamente
+      aprovacoes: [{ participante: '', data: '' }]
+    })
+
+    const sections = [
+      { id: 'identificacao', title: 'Identificação do Projeto' },
+      { id: 'escopo', title: 'Escopo' },
+      { id: 'cenarios', title: 'Cenários Operacionais' },
+      { id: 'casos-teste', title: 'Casos de Teste' },
+      { id: 'anexos', title: 'Anexos e Referências' },
+      { id: 'aprovacoes', title: 'Aprovações' }
+    ]
+
+    const currentSectionTitle = computed(() => {
+      const section = sections.find(s => s.id === activeSection.value)
+      return section ? section.title : ''
+    })
+
+    const setActiveSection = (sectionId) => {
+      activeSection.value = sectionId
+    }
+
+    const handleLogout = () => {
+      console.log('Logout')
+      // Lógica de logout real aqui
+      isLoggedIn.value = false
+      userInfo.value = null
+      // Redirecionar para a tela de login, por exemplo
+    }
+
+    const addArrayItem = (field, defaultItem) => {
+      formData.value[field].push(defaultItem)
+    }
+
+    const removeArrayItem = (field, index) => {
+      formData.value[field].splice(index, 1)
+    }
+
+    const generateDocx = () => {
+      console.log('Gerar DOCX com os dados:', formData.value)
+      // Lógica para gerar o DOCX
+    }
+
+    return {
+      isLoggedIn,
+      userInfo,
+      activeSection,
+      formData,
+      sections,
+      currentSectionTitle,
+      setActiveSection,
+      handleLogout,
+      addArrayItem,
+      removeArrayItem,
+      generateDocx
+    }
+  }
+}
+</script>
+
+<style scoped>
+/* Estilos adaptados do App.css e SiGeT-style.css */
+.test-script-form-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #f4f7f6;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background-color: #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.form-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #333333;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.sidebar {
+  width: 250px;
+  background-color: #2c3e50;
+  color: #ecf0f1;
+  padding: 1rem 0;
+  position: fixed;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.sidebar-menu {
+  list-style: none;
+  padding: 0;
+}
+
+.sidebar-link {
+  display: block;
+  padding: 0.8rem 2rem;
+  color: #ecf0f1;
+  text-decoration: none;
+  transition: background-color 0.2s;
+  cursor: pointer;
+}
+
+.sidebar-link:hover {
+  background-color: #34495e;
+}
+
+.sidebar-link-active {
+  background-color: #1abc9c;
+  font-weight: bold;
+}
+
+.form-main-content {
+  margin-left: 250px; /* Ajustar para a largura da sidebar */
+  padding: 2rem;
+  flex-grow: 1;
+}
+
+.form-section {
+  background-color: #ffffff;
+  padding: 2rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.section-title {
+  font-size: 1.5rem;
+  color: #333333;
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid #e0e0e0;
+  padding-bottom: 0.5rem;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.form-grid.three-cols {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  font-weight: 600;
+  color: #555555;
+  font-size: 0.9rem;
+}
+
+.form-group input,
+.form-group textarea {
+  padding: 0.75rem;
+  border: 1px solid #cccccc;
+  border-radius: 0.3rem;
+  font-size: 1rem;
+  color: #333333;
+  width: 100%;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+.card {
+  border: 1px solid #e0e0e0;
+  border-radius: 0.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.card-header {
+  background-color: #f8f8f8;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e0e0e0;
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0.5rem;
+}
+
+.card-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333333;
+}
+
+.card-title i {
+  margin-right: 0.5rem;
+  color: #3498db;
+}
+
+.card-content {
+  padding: 1.5rem;
+}
+
+.grid-cols-4-gap-4 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  align-items: center;
+}
+
+.grid-cols-2-gap-4 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  align-items: center;
+}
+
+.border-rounded-lg {
+  border: 1px solid #f0f0f0;
+  border-radius: 0.5rem;
+}
+
+.flex-gap-2 {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.btn {
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.3rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.btn-primary {
+  background-color: #3498db;
+  color: #ffffff;
+  border: 1px solid #3498db;
+}
+
+.btn-primary:hover {
+  background-color: #217dbb;
+  border-color: #217dbb;
+}
+
+.btn-secondary {
+  background-color: #6c757d;
+  color: #ffffff;
+  border: 1px solid #6c757d;
+}
+
+.btn-secondary:hover {
+  background-color: #5a6268;
+  border-color: #5a6268;
+}
+
+.btn-outline {
+  background-color: #ffffff;
+  color: #6c757d;
+  border: 1px solid #cccccc;
+}
+
+.btn-outline:hover {
+  background-color: #f0f0f0;
+  border-color: #bbbbbb;
+}
+
+.icon-btn {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.full-width-btn {
+  width: 100%;
+}
+
+.checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.checkbox-group input[type="checkbox"] {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.py-8 {
+  padding-top: 2rem;
+  padding-bottom: 2rem;
+}
+
+.text-5xl {
+  font-size: 3rem;
+}
+
+.opacity-50 {
+  opacity: 0.5;
+}
+
+.mb-4 {
+  margin-bottom: 1rem;
+}
+
+.mt-4 {
+  margin-top: 1rem;
+}
+
+.text-muted-foreground {
+  color: #6c757d;
+}
+
+.text-sm {
+  font-size: 0.875rem;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 100%;
+    position: relative;
+    height: auto;
+  }
+
+  .form-main-content {
+    margin-left: 0;
+  }
+
+  .form-header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .form-actions {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-grid.three-cols {
+    grid-template-columns: 1fr;
+  }
+
+  .grid-cols-4-gap-4,
+  .grid-cols-2-gap-4 {
+    grid-template-columns: 1fr;
+  }
+
+  .flex-gap-2 {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .icon-btn {
+    width: 100%;
+  }
+}
+</style>
+

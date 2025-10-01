@@ -1,0 +1,449 @@
+<template>
+  <div>
+    <!-- Se não estiver logado, mostrar tela de login -->
+    <LoginScreenNew v-if="!isLoggedIn" @onLogin="handleLogin" />
+    
+    <!-- Se estiver logado, mostrar aplicação principal -->
+    <div v-else class="min-h-screen bg-gray-100 flex flex-col">
+      <header class="bg-white shadow-sm p-4 flex justify-between items-center">
+        <h1 class="text-xl font-semibold">Roteiro de Testes</h1>
+        <div class="flex items-center space-x-4">
+          <span v-if="userInfo" class="text-gray-700">Bem-vindo, {{ userInfo.usuario }} ({{ userInfo.perfil }})</span>
+          <Button variant="outline" size="icon" @click="handleLogout">
+            <LogOut class="h-4 w-4" />
+          </Button>
+        </div>
+      </header>
+
+      <main class="flex-1 p-4">
+        <div class="max-w-7xl mx-auto bg-white p-6 rounded-lg shadow-md">
+          <div class="flex border-b pb-4 mb-4">
+            <nav class="flex space-x-4">
+              <Button
+                v-for="section in sections"
+                :key="section.id"
+                :variant="activeSection === section.id ? 'default' : 'ghost'"
+                @click="activeSection = section.id"
+              >
+                {{ section.title }}
+              </Button>
+            </nav>
+          </div>
+
+          <div class="mt-6">
+            <!-- Seção Identificação -->
+            <div v-if="activeSection === 'identificacao'" class="space-y-6">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="siglaProjeto">Sigla do Projeto *</Label>
+                  <Input
+                    id="siglaProjeto"
+                    v-model="formData.siglaProjeto"
+                    placeholder="Ex: SIST"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="nomeProjeto">Nome do Projeto *</Label>
+                  <Input
+                    id="nomeProjeto"
+                    v-model="formData.nomeProjeto"
+                    placeholder="Ex: Sistema de Gestão"
+                  />
+                </div>
+              </div>
+              
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="versao">Versão</Label>
+                  <Input
+                    id="versao"
+                    v-model="formData.versao"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="requisitante">Nome do Requisitante *</Label>
+                  <Input
+                    id="requisitante"
+                    v-model="formData.nomeRequisitante"
+                    placeholder="Nome completo"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="gerente">Gerente de Projetos *</Label>
+                  <Input
+                    id="gerente"
+                    v-model="formData.gerenteProjetos"
+                    placeholder="Nome completo"
+                  />
+                </div>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle class="flex items-center gap-2">
+                    <FileText class="h-5 w-5" />
+                    Histórico de Revisões
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div class="space-y-4">
+                    <div v-for="(revisao, index) in formData.historicoRevisoes" :key="index" class="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border rounded-lg">
+                      <Input
+                        placeholder="Versão"
+                        v-model="revisao.versao"
+                      />
+                      <Input
+                        type="date"
+                        placeholder="Data"
+                        v-model="revisao.data"
+                      />
+                      <Input
+                        placeholder="Descrição"
+                        v-model="revisao.descricao"
+                      />
+                      <div class="flex gap-2">
+                        <Input
+                          placeholder="Autor"
+                          v-model="revisao.autor"
+                        />
+                        <Button
+                          v-if="formData.historicoRevisoes.length > 1"
+                          variant="outline"
+                          size="icon"
+                          @click="removeArrayItem('historicoRevisoes', index)"
+                        >
+                          <Trash2 class="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      @click="addArrayItem('historicoRevisoes', { versao: '', data: '', descricao: '', autor: '' })"
+                      class="w-full"
+                    >
+                      <Plus class="h-4 w-4 mr-2" />
+                      Adicionar Revisão
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <!-- Seção Escopo -->
+            <div v-else-if="activeSection === 'escopo'" class="space-y-6">
+              <div>
+                <Label htmlFor="itensTesteTxt">Itens de Teste</Label>
+                <Textarea
+                  id="itensTesteTxt"
+                  v-model="formData.itensTesteTxt"
+                  placeholder="Descreva os itens de teste que fazem parte do Roteiro de Testes..."
+                  rows="4"
+                />
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Tipos de Teste</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div v-for="tipo in tiposTesteOptions" :key="tipo.key" class="flex items-center space-x-2">
+                      <Checkbox
+                        :id="tipo.key"
+                        v-model:checked="formData.tiposTeste[tipo.key]"
+                      />
+                      <Label :htmlFor="tipo.key">{{ tipo.label }}</Label>
+                    </div>
+                  </div>
+                  <div v-if="formData.tiposTeste.outros" class="mt-4">
+                    <Input
+                      placeholder="Especifique outros tipos de teste..."
+                      v-model="formData.tiposTeste.outrosTexto"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Níveis de Teste</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div v-for="nivel in niveisTesteOptions" :key="nivel.key" class="flex items-center space-x-2">
+                      <Checkbox
+                        :id="nivel.key"
+                        v-model:checked="formData.niveisTesteTxt[nivel.key]"
+                      />
+                      <Label :htmlFor="nivel.key">{{ nivel.label }}</Label>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <!-- Seção Cenários -->
+            <div v-else-if="activeSection === 'cenarios'">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Identificação de Cenários Operacionais</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div class="space-y-4">
+                    <div v-for="(cenario, index) in formData.cenarios" :key="index" class="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border rounded-lg">
+                      <Input
+                        placeholder="Nome do Cenário"
+                        v-model="cenario.nome"
+                      />
+                      <div class="flex gap-2">
+                        <Textarea
+                          placeholder="Descrição do cenário..."
+                          v-model="cenario.descricao"
+                          rows="2"
+                        />
+                        <Button
+                          v-if="formData.cenarios.length > 1"
+                          variant="outline"
+                          size="icon"
+                          @click="removeArrayItem('cenarios', index)"
+                        >
+                          <Trash2 class="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      @click="addArrayItem('cenarios', { nome: '', descricao: '' })"
+                      class="w-full"
+                    >
+                      <Plus class="h-4 w-4 mr-2" />
+                      Adicionar Cenário
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <!-- Seção Casos de Teste -->
+            <div v-else-if="activeSection === 'casos-teste'">
+              <CasoTesteDetalhado v-model="formData.casosTeste" />
+            </div>
+
+            <!-- Seção Anexos -->
+            <div v-else-if="activeSection === 'anexos'" class="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Anexos</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div class="space-y-4">
+                    <div v-for="(anexo, index) in formData.anexos" :key="index" class="flex gap-2">
+                      <Input
+                        placeholder="Nome do documento ou arquivo..."
+                        v-model="formData.anexos[index]"
+                      />
+                      <Button
+                        v-if="formData.anexos.length > 1"
+                        variant="outline"
+                        size="icon"
+                        @click="removeArrayItem('anexos', index)"
+                      >
+                        <Trash2 class="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <Button
+                      variant="outline"
+                      @click="addArrayItem('anexos', '')"
+                      class="w-full"
+                    >
+                      <Plus class="h-4 w-4 mr-2" />
+                      Adicionar Anexo
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Referências</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div class="space-y-4">
+                    <div v-for="(referencia, index) in formData.referencias" :key="index" class="flex gap-2">
+                      <Input
+                        placeholder="Referência a documentos, sites, manuais..."
+                        v-model="formData.referencias[index]"
+                      />
+                      <Button
+                        v-if="formData.referencias.length > 1"
+                        variant="outline"
+                        size="icon"
+                        @click="removeArrayItem('referencias', index)"
+                      >
+                        <Trash2 class="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <Button
+                      variant="outline"
+                      @click="addArrayItem('referencias', '')"
+                      class="w-full"
+                    >
+                      <Plus class="h-4 w-4 mr-2" />
+                      Adicionar Referência
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <!-- Seção Aprovações -->
+            <div v-else-if="activeSection === 'aprovacoes'">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Aprovações</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div class="space-y-4">
+                    <div v-for="(aprovacao, index) in formData.aprovacoes" :key="index" class="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border rounded-lg">
+                      <Input
+                        placeholder="Nome do Participante"
+                        v-model="aprovacao.participante"
+                      />
+                      <div class="flex gap-2">
+                        <Input
+                          type="date"
+                          placeholder="Data"
+                          v-model="aprovacao.data"
+                        />
+                        <Button
+                          v-if="formData.aprovacoes.length > 1"
+                          variant="outline"
+                          size="icon"
+                          @click="removeArrayItem('aprovacoes', index)"
+                        >
+                          <Trash2 class="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      @click="addArrayItem('aprovacoes', { participante: '', data: '' })"
+                      class="w-full"
+                    >
+                      <Plus class="h-4 w-4 mr-2" />
+                      Adicionar Aprovação
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          <div class="mt-8 flex justify-end space-x-4">
+            <Button variant="outline">
+              <Download class="h-4 w-4 mr-2" />
+              Exportar para PDF
+            </Button>
+            <Button>
+              Salvar Roteiro
+            </Button>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, reactive } from 'vue'
+import { Button } from '@/components/ui/button.jsx'
+import { Input } from '@/components/ui/input.jsx'
+import { Textarea } from '@/components/ui/textarea.jsx'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.jsx'
+import { Checkbox } from '@/components/ui/checkbox.jsx'
+import { Label } from '@/components/ui/label.jsx'
+import { Plus, Trash2, FileText, Download, LogOut } from 'lucide-react'
+import LoginScreenNew from './LoginScreenNew.vue'
+import CasoTesteDetalhado from './CasoTesteDetalhado.vue'
+
+const isLoggedIn = ref(false)
+const userInfo = ref(null)
+const activeSection = ref('identificacao')
+const formData = reactive({
+  siglaProjeto: '',
+  nomeProjeto: '',
+  versao: '1.0',
+  nomeRequisitante: '',
+  gerenteProjetos: '',
+  itensTesteTxt: '',
+  tiposTeste: {
+    funcao: false,
+    seguranca: false,
+    volume: false,
+    usabilidade: false,
+    desempenho: false,
+    outros: false,
+    outrosTexto: ''
+  },
+  niveisTesteTxt: {
+    unitarios: false,
+    integracao: false,
+    sistema: false,
+    configuracao: false
+  },
+  historicoRevisoes: [{ versao: '1.0', data: '', descricao: '', autor: '' }],
+  cenarios: [{ nome: '', descricao: '' }],
+  casosTeste: [],
+  anexos: [''],
+  referencias: [''],
+  aprovacoes: [{ participante: '', data: '' }]
+})
+
+const handleLogin = (credentials) => {
+  userInfo.value = credentials
+  isLoggedIn.value = true
+}
+
+const handleLogout = () => {
+  isLoggedIn.value = false
+  userInfo.value = null
+}
+
+const addArrayItem = (field, defaultItem) => {
+  formData[field].push(defaultItem)
+}
+
+const removeArrayItem = (field, index) => {
+  formData[field].splice(index, 1)
+}
+
+const sections = [
+  { id: 'identificacao', title: 'Identificação do Projeto' },
+  { id: 'escopo', title: 'Escopo' },
+  { id: 'cenarios', title: 'Cenários Operacionais' },
+  { id: 'casos-teste', title: 'Casos de Teste' },
+  { id: 'anexos', title: 'Anexos e Referências' },
+  { id: 'aprovacoes', title: 'Aprovações' }
+]
+
+const tiposTesteOptions = [
+  { key: 'funcao', label: 'Teste de função' },
+  { key: 'seguranca', label: 'Teste de segurança' },
+  { key: 'volume', label: 'Teste de volume' },
+  { key: 'usabilidade', label: 'Teste de usabilidade' },
+  { key: 'desempenho', label: 'Teste de avaliação de desempenho' },
+  { key: 'outros', label: 'Outros' }
+]
+
+const niveisTesteOptions = [
+  { key: 'unitarios', label: 'Testes unitários funcionais' },
+  { key: 'integracao', label: 'Testes de integração' },
+  { key: 'sistema', label: 'Testes de sistema' },
+  { key: 'configuracao', label: 'Testes de configuração de portal' }
+]
+</script>
+
+<style scoped>
+/* Adicione estilos específicos do componente aqui, se necessário */
+</style>
+

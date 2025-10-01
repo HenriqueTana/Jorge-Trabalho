@@ -1,0 +1,235 @@
+<template>
+  <div class="space-y-6">
+    <div class="flex justify-between items-center">
+      <h3 class="text-lg font-semibold">Casos de Teste Detalhados</h3>
+      <Button @click="adicionarCasoTeste" class="flex items-center gap-2">
+        <Plus class="h-4 w-4" />
+        Adicionar Caso de Teste
+      </Button>
+    </div>
+
+    <div v-if="casosTeste.length === 0" class="text-center py-8 text-muted-foreground">
+      <FileText class="h-12 w-12 mx-auto mb-4 opacity-50" />
+      <p>Nenhum caso de teste criado ainda.</p>
+      <p class="text-sm">Clique em "Adicionar Caso de Teste" para começar.</p>
+    </div>
+
+    <div v-else class="space-y-6">
+      <Card v-for="(casoTeste, index) in casosTeste" :key="index" class="relative">
+        <CardHeader>
+          <div class="flex justify-between items-start">
+            <div class="flex-1">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <Label :for="`identificador-${index}`">Identificador do Caso de Teste *</Label>
+                  <Input
+                    :id="`identificador-${index}`"
+                    v-model="casoTeste.identificador"
+                    placeholder="Ex: CT001"
+                  />
+                </div>
+                <div>
+                  <Label :for="`nome-${index}`">Nome do Caso de Teste *</Label>
+                  <Input
+                    :id="`nome-${index}`"
+                    v-model="casoTeste.nome"
+                    placeholder="Ex: Validar login com credenciais válidas"
+                  />
+                </div>
+              </div>
+              <div class="mb-4">
+                <Label :for="`cenario-${index}`">Cenário Associado</Label>
+                <Input
+                  :id="`cenario-${index}`"
+                  v-model="casoTeste.cenario"
+                  placeholder="Nome do cenário operacional"
+                />
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="icon"
+              @click="removerCasoTeste(index)"
+              class="ml-4"
+            >
+              <Trash2 class="h-4 w-4" />
+            </Button>
+          </div>
+        </CardHeader>
+        
+        <CardContent class="space-y-6">
+          <!-- Descrição -->
+          <div>
+            <Label :for="`descricao-${index}`">Descrição</Label>
+            <Textarea
+              :id="`descricao-${index}`"
+              v-model="casoTeste.descricao"
+              placeholder="Descrever o objetivo do caso de teste, esclarecendo se este é positivo ou negativo..."
+              rows="3"
+            />
+          </div>
+
+          <!-- Pré-condições -->
+          <div>
+            <Label :for="`precondicoes-${index}`">Pré-condições</Label>
+            <Textarea
+              :id="`precondicoes-${index}`"
+              v-model="casoTeste.precondicoes"
+              placeholder="Descrever o estado obrigatório do sistema antes do início do teste..."
+              rows="3"
+            />
+          </div>
+
+          <!-- Procedimentos -->
+          <div>
+            <div class="flex justify-between items-center mb-2">
+              <Label>Procedimentos</Label>
+              <Button
+                variant="outline"
+                size="sm"
+                @click="adicionarProcedimento(index)"
+              >
+                <Plus class="h-4 w-4 mr-2" />
+                Adicionar Passo
+              </Button>
+            </div>
+            
+            <div class="space-y-2">
+              <div
+                v-for="(procedimento, procIndex) in casoTeste.procedimentos"
+                :key="procIndex"
+                class="grid grid-cols-12 gap-2 items-start"
+              >
+                <div class="col-span-1">
+                  <Input
+                    v-model="procedimento.passo"
+                    placeholder="P1"
+                    class="text-center"
+                  />
+                </div>
+                <div class="col-span-6">
+                  <Textarea
+                    v-model="procedimento.descricao"
+                    placeholder="Descrição do passo..."
+                    rows="2"
+                  />
+                </div>
+                <div class="col-span-4">
+                  <Textarea
+                    v-model="procedimento.criterios"
+                    placeholder="Critérios de verificação..."
+                    rows="2"
+                  />
+                </div>
+                <div class="col-span-1">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    @click="removerProcedimento(index, procIndex)"
+                    class="h-8 w-8"
+                  >
+                    <Trash2 class="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Resultados Esperados -->
+          <div>
+            <Label :for="`resultados-${index}`">Resultados Esperados</Label>
+            <Textarea
+              :id="`resultados-${index}`"
+              v-model="casoTeste.resultadosEsperados"
+              placeholder="Descrever o estado resultante ou as condições observáveis esperadas como resultado da execução do teste..."
+              rows="3"
+            />
+          </div>
+
+          <!-- Pós-condições -->
+          <div>
+            <Label :for="`poscondicoes-${index}`">Pós-condições</Label>
+            <Textarea
+              :id="`poscondicoes-${index}`"
+              v-model="casoTeste.poscondicoes"
+              placeholder="Descrever o estado ao qual o sistema deverá retornar para permitir a execução de testes subsequentes..."
+              rows="3"
+            />
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { reactive, watch } from 'vue'
+import { Button } from '@/components/ui/button.jsx'
+import { Input } from '@/components/ui/input.jsx'
+import { Textarea } from '@/components/ui/textarea.jsx'
+import { Card, CardContent, CardHeader } from '@/components/ui/card.jsx'
+import { Label } from '@/components/ui/label.jsx'
+import { Plus, Trash2, FileText } from 'lucide-react'
+
+const props = defineProps({
+  modelValue: {
+    type: Array,
+    default: () => []
+  }
+})
+
+const emit = defineEmits(['update:modelValue'])
+
+const casosTeste = reactive(props.modelValue)
+
+const adicionarCasoTeste = () => {
+  const novoCaso = {
+    identificador: '',
+    nome: '',
+    cenario: '',
+    descricao: '',
+    precondicoes: '',
+    procedimentos: [
+      { passo: 'P1', descricao: '', criterios: '' }
+    ],
+    resultadosEsperados: '',
+    poscondicoes: ''
+  }
+  
+  casosTeste.push(novoCaso)
+  emit('update:modelValue', casosTeste)
+}
+
+const removerCasoTeste = (index) => {
+  casosTeste.splice(index, 1)
+  emit('update:modelValue', casosTeste)
+}
+
+const adicionarProcedimento = (casoIndex) => {
+  const proximoPasso = `P${casosTeste[casoIndex].procedimentos.length + 1}`
+  casosTeste[casoIndex].procedimentos.push({
+    passo: proximoPasso,
+    descricao: '',
+    criterios: ''
+  })
+  emit('update:modelValue', casosTeste)
+}
+
+const removerProcedimento = (casoIndex, procIndex) => {
+  casosTeste[casoIndex].procedimentos.splice(procIndex, 1)
+  emit('update:modelValue', casosTeste)
+}
+
+// Sincronizar mudanças com o componente pai
+const syncChanges = () => {
+  emit('update:modelValue', casosTeste)
+}
+
+// Observar mudanças nos dados
+watch(() => casosTeste, syncChanges, { deep: true })
+</script>
+
+<style scoped>
+/* Adicione estilos específicos do componente aqui, se necessário */
+</style>
+

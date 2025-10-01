@@ -1,0 +1,181 @@
+<template>
+  <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div class="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+      
+      <!-- Lado esquerdo - Informações do sistema -->
+      <div class="space-y-8">
+        <div class="text-center lg:text-left">
+          <div class="mb-6">
+            <div class="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center mx-auto lg:mx-0 mb-4">
+              <FileText class="h-10 w-10 text-white" />
+            </div>
+            <h1 class="text-4xl font-bold text-gray-900 mb-2">
+              Sistema de Roteiros de Teste
+            </h1>
+            <p class="text-xl text-gray-600">
+              MCTIC - Coordenação Geral de Sistemas
+            </p>
+          </div>
+          
+          <div class="space-y-4 text-gray-700">
+            <div class="flex items-start gap-3">
+              <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                <FileText class="h-4 w-4 text-blue-600" />
+              </div>
+              <div>
+                <h3 class="font-semibold">Criação de Roteiros</h3>
+                <p class="text-sm">Crie roteiros de teste estruturados seguindo os padrões do MCTIC</p>
+              </div>
+            </div>
+            
+            <div class="flex items-start gap-3">
+              <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                <Users class="h-4 w-4 text-green-600" />
+              </div>
+              <div>
+                <h3 class="font-semibold">Colaboração</h3>
+                <p class="text-sm">Trabalhe em equipe com aprovações e revisões integradas</p>
+              </div>
+            </div>
+            
+            <div class="flex items-start gap-3">
+              <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                <Shield class="h-4 w-4 text-purple-600" />
+              </div>
+              <div>
+                <h3 class="font-semibold">Conformidade</h3>
+                <p class="text-sm">Garanta conformidade com normas e padrões governamentais</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lado direito - Formulário de login -->
+      <div class="w-full max-w-md mx-auto">
+        <Card class="shadow-2xl">
+          <CardHeader class="text-center pb-6">
+            <CardTitle class="text-2xl font-bold text-gray-900">
+              Acesso ao Sistema
+            </CardTitle>
+            <p class="text-gray-600">
+              Entre com suas credenciais para continuar
+            </p>
+          </CardHeader>
+          
+          <CardContent class="space-y-6">
+            <form @submit.prevent="handleLogin" class="space-y-4">
+              <div class="space-y-2">
+                <Label for="usuario">Usuário</Label>
+                <div class="relative">
+                  <User class="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="usuario"
+                    type="text"
+                    placeholder="Digite seu usuário"
+                    v-model="credentials.usuario"
+                    class="pl-10"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div class="space-y-2">
+                <Label for="senha">Senha</Label>
+                <div class="relative">
+                  <Lock class="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="senha"
+                    type="password"
+                    placeholder="Digite sua senha"
+                    v-model="credentials.senha"
+                    class="pl-10"
+                    required
+                  />
+                </div>
+              </div>
+
+              <Separator />
+
+              <div class="space-y-3">
+                <Label>Selecione seu perfil de acesso:</Label>
+                <div class="grid grid-cols-1 gap-2">
+                  <label
+                    v-for="perfil in perfis"
+                    :key="perfil.id"
+                    :class="[
+                      'flex items-center p-3 rounded-lg border-2 cursor-pointer transition-all',
+                      credentials.perfil === perfil.id
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    ]"
+                  >
+                    <input
+                      type="radio"
+                      name="perfil"
+                      :value="perfil.id"
+                      v-model="credentials.perfil"
+                      class="sr-only"
+                    />
+                    <component :is="perfil.icon" class="h-5 w-5 text-gray-600 mr-3" />
+                    <div class="flex-1">
+                      <div class="font-medium text-sm">{{ perfil.nome }}</div>
+                      <div class="text-xs text-gray-500">{{ perfil.desc }}</div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <Button type="submit" class="w-full" size="lg">
+                Entrar no Sistema
+              </Button>
+            </form>
+
+            <div class="text-center text-sm text-gray-500">
+              <p>Sistema desenvolvido pela</p>
+              <p class="font-semibold">Diretoria de Tecnologia da Informação - MCTIC</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { reactive } from 'vue'
+import { Button } from '@/components/ui/button.jsx'
+import { Input } from '@/components/ui/input.jsx'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.jsx'
+import { Label } from '@/components/ui/label.jsx'
+import { Separator } from '@/components/ui/separator.jsx'
+import { User, Lock, FileText, Shield, Users, Settings } from 'lucide-react'
+
+const emit = defineEmits(["onLogin"])
+
+const credentials = reactive({
+  usuario: '',
+  senha: '',
+  perfil: 'analista'
+})
+
+const handleLogin = () => {
+  // Simulação de login - em um sistema real, haveria validação no backend
+  if (credentials.usuario && credentials.senha) {
+    emit('onLogin', credentials)
+  }
+}
+
+const perfis = [
+  { id: 'analista', nome: 'Analista de Teste', icon: FileText, desc: 'Criar e executar roteiros de teste' },
+  { id: 'gerente', nome: 'Gerente de Projeto', icon: Users, desc: 'Aprovar e gerenciar roteiros' },
+  { id: 'admin', nome: 'Administrador', icon: Settings, desc: 'Configurações do sistema' },
+  { id: 'auditor', nome: 'Auditor de Qualidade', icon: Shield, desc: 'Revisar e validar processos' }
+]
+</script>
+
+<style scoped>
+/* Adicione estilos específicos do componente aqui, se necessário */
+</style>
+
+
